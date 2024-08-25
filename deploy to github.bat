@@ -100,12 +100,47 @@ if %errorlevel% neq 0 (
 
 echo Repository created successfully.
 
+:: Check if remote origin exists and remove it
+git remote -v | findstr "origin" > nul
+if %errorlevel% equ 0 (
+    echo A remote origin already exists. Removing it...
+    git remote remove origin
+    if !errorlevel! neq 0 (
+        echo Error: Failed to remove existing remote.
+        goto :error
+    )
+    echo Existing remote removed successfully.
+)
+
+:: Construct and display the remote URL
+set "remote_url=https://github.com/%github_username%/%url_repo_name%.git"
+echo.
+echo Constructed remote URL: %remote_url%
+echo.
+
 :: Add remote
-git remote add origin "https://github.com/%github_username%/%url_repo_name%.git"
+echo Adding new remote origin...
+git remote add origin "%remote_url%"
 if %errorlevel% neq 0 (
     echo Error: Failed to add remote origin.
+    echo Current remotes:
+    git remote -v
     goto :error
 )
+
+:: Verify remote was added correctly
+echo Verifying remote...
+for /f "tokens=2" %%a in ('git remote -v ^| findstr "(fetch)"') do set "actual_url=%%a"
+echo Actual remote URL: !actual_url!
+
+if not "!actual_url!"=="%remote_url%" (
+    echo Error: Remote URL mismatch.
+    echo Expected: %remote_url%
+    echo Actual: !actual_url!
+    goto :error
+)
+
+echo Remote origin added and verified successfully.
 
 :: Push to GitHub
 echo Pushing to GitHub...
