@@ -19,21 +19,18 @@ git add .
 :: Commit the files
 git commit -m "Initial commit"
 
-:: Prompt for the GitHub repository name
-set /p repo_name=Enter the name for your GitHub repository: 
-
-:: Create a new repository on GitHub using the GitHub CLI
-where gh >nul 2>nul
-if %errorlevel% neq 0 (
-    echo GitHub CLI is not installed or not in the system PATH.
-    echo Please install GitHub CLI and try again.
-    echo You can manually create a repository on GitHub and push your changes.
-    pause
-    exit /b 1
-)
-
-:: Create the repository and push the changes
-gh repo create %repo_name% --public --source=. --remote=origin --push
-
-echo Repository created and files pushed successfully!
-pause
+:: Provide instructions for creating a GitHub repository and pushing changes
+echo.
+echo Local repository created successfully!
+echo.
+echo To create a GitHub repository and push your changes:
+echo 1. Go to https://github.com/new
+echo 2. Create a new repository (do not initialize with README, license, or .gitignore)
+echo 3. Copy the URL of your new repository
+echo 4. Run the following commands in this directory:
+echo    git remote add origin YOUR_REPOSITORY_URL
+echo    git branch -M main
+echo    git push -u origin main
+echo.
+echo Press any key to exit...
+pause >nul
