@@ -10,6 +10,22 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+:: Check if curl is installed
+where curl >nul 2>nul
+if %errorlevel% neq 0 (
+    echo cURL is not installed or not in the system PATH.
+    echo Please install cURL and try again.
+    pause
+    exit /b 1
+)
+
+:: Prompt for GitHub username and personal access token
+set /p github_username=Enter your GitHub username: 
+set /p github_token=Enter your GitHub personal access token: 
+
+:: Get the name of the current folder
+for %%I in (.) do set "repo_name=%%~nxI"
+
 :: Initialize the repository
 git init
 
@@ -19,18 +35,21 @@ git add .
 :: Commit the files
 git commit -m "Initial commit"
 
-:: Provide instructions for creating a GitHub repository and pushing changes
-echo.
-echo Local repository created successfully!
-echo.
-echo To create a GitHub repository and push your changes:
-echo 1. Go to https://github.com/new
-echo 2. Create a new repository (do not initialize with README, license, or .gitignore)
-echo 3. Copy the URL of your new repository
-echo 4. Run the following commands in this directory:
-echo    git remote add origin YOUR_REPOSITORY_URL
-echo    git branch -M main
-echo    git push -u origin main
-echo.
-echo Press any key to exit...
-pause >nul
+:: Create a new repository on GitHub using the API
+echo Creating GitHub repository...
+curl -H "Authorization: token %github_token%" https://api.github.com/user/repos -d "{\"name\":\"%repo_name%\"}" >nul
+
+if %errorlevel% neq 0 (
+    echo Failed to create GitHub repository. Please check your token and try again.
+    pause
+    exit /b 1
+)
+
+:: Add the remote origin
+git remote add origin https://github.com/%github_username%/%repo_name%.git
+
+:: Push the changes
+git push -u origin master
+
+echo Repository created and files pushed successfully!
+pause
