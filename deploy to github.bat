@@ -1,7 +1,12 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo Step 1: Checking Git installation
+:: Prevent the window from closing immediately
+if not defined in_subprocess (cmd /k set in_subprocess=y ^& %0 %*) & exit )
+
+echo Starting GitHub repository creation script...
+
+:: Check for Git
 where git >nul 2>nul
 if %errorlevel% neq 0 (
     echo Git is not installed or not in the system PATH.
@@ -9,7 +14,7 @@ if %errorlevel% neq 0 (
     goto :error
 )
 
-echo Step 2: Checking cURL installation
+:: Check for cURL
 where curl >nul 2>nul
 if %errorlevel% neq 0 (
     echo cURL is not installed or not in the system PATH.
@@ -18,8 +23,14 @@ if %errorlevel% neq 0 (
 )
 
 echo Step 3: Prompting for GitHub credentials
-set /p github_username=Enter your GitHub username: 
-set /p github_token=Enter your GitHub personal access token: 
+set /p "github_username=Enter your GitHub username: "
+set /p "github_token=Enter your GitHub personal access token: "
+
+echo Verifying GitHub username: %github_username%
+if "%github_username%"=="" (
+    echo Error: GitHub username is empty.
+    goto :error
+)
 
 echo Step 4: Getting repository name and adding timestamp
 for %%I in (.) do set "repo_name=%%~nxI"
@@ -51,14 +62,28 @@ if %errorlevel% neq 0 (
     goto :error
 )
 
-echo Step 8: Creating GitHub repository
+echo Step 8: Creating GitHub repository via API
 curl -H "Authorization: token %github_token%" https://api.github.com/user/repos -d "{\"name\":\"%url_repo_name%\"}"
 if %errorlevel% neq 0 (
-    echo Failed to create GitHub repository. Please check your token and try again.
-    goto :error
+    echo Failed to create GitHub repository via API.
+    set /p manual_create=Would you like to create the repository manually? (Y/N):
+    if /i "%manual_create%"=="Y" (
+        echo Please create a new repository named %url_repo_name% on GitHub.
+        echo Press any key when you've created the repository...
+        pause >nul
+    ) else (
+        goto :error
+    )
 )
 
-echo Step 9: Adding remote origin
+echo Step 9: Updating remote origin
+echo Removing existing remote origin...
+git remote remove origin
+if %errorlevel% neq 0 (
+    echo Failed to remove existing remote. Continuing anyway...
+)
+
+echo Adding new remote origin...
 set "remote_url=https://github.com/%github_username%/%url_repo_name%.git"
 echo Remote URL: %remote_url%
 git remote add origin "%remote_url%"
